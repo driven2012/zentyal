@@ -250,19 +250,33 @@ sub setHasAccount
 
 sub _addUser
 {
-   my ($self, $user, $password) = @_;
+    my ($self, $user, $password) = @_;
 
-   unless ($self->{zarafa}->configured()) {
-       return;
-   }
-   my $model = $self->{zarafa}->model('ZarafaUser');
-   my $enabledValue = $model->enabledValue();
-   if ($enabledValue) {
-       $self->setHasAccount($user, 1);
-   } else {
-       $self->setHasContact($user, $model->contactValue());
-   }
+    unless ($self->{zarafa}->configured()) {
+        return;
+    }
 
+    if (not $self->_userIsInternal($user)) {
+        my $model = $self->{zarafa}->model('ZarafaUser');
+        my $enabledValue = $model->enabledValue();
+
+        if ($enabledValue) {
+            $self->setHasAccount($user, 1);
+        } else {
+            $self->setHasContact($user, $model->contactValue());
+        }
+   }
+}
+
+sub _userIsInternal
+{
+    my ($self, $user) = @_;
+
+    my $isSambaUser = lc($user->get('title')) eq 'internal';
+    my $isGuestUser = lc($user->get('uid')) eq 'guest';
+    my $isKerberosUser = lc($user->get('uid')) eq 'krbtgt';
+
+    return $isSambaUser or $isGuestUser or $isKerberosUser;
 }
 
 sub _addContact
